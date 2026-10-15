@@ -1,0 +1,738 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
+ 
+/* =========================================================
+   TOKENI
+   Unutar stranica sve je u cqh (1% visine stranice), pa se
+   cijela knjiga skalira zajedno s veličinom ekrana.
+========================================================= */
+ 
+:root {
+  --ink: #2f2217;
+  --muted: #7d684f;
+  --line: #cdb994;
+  --gold: #d3ad62;
+  --gold-deep: #9a7632;
+  --marker: #b5382c;
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-text: 'EB Garamond', Georgia, 'Times New Roman', serif;
+  --dur: 1.1s;
+ 
+  /* zrnatost kože (tamne mrlje) i papira (blaga) */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .08 0 0 0 0 .04 0 0 0 0 .02 1.5 0 0 0 -.4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .22 0 0 0 0 .08 .55 0 0 0 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+ 
+  /* izohipse za fotografiju i okvir s tragom */
+  --topo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 560' preserveAspectRatio='xMidYMid slice'%3E%3Cg fill='none' stroke='%23f3e1b8' stroke-width='1.2' stroke-opacity='.16'%3E%3Cg transform='rotate(-20 150 170)'%3E%3Cellipse cx='150' cy='170' rx='30' ry='21'/%3E%3Cellipse cx='150' cy='170' rx='50' ry='35'/%3E%3Cellipse cx='150' cy='170' rx='70' ry='49'/%3E%3Cellipse cx='150' cy='170' rx='90' ry='63'/%3E%3Cellipse cx='150' cy='170' rx='110' ry='77'/%3E%3Cellipse cx='150' cy='170' rx='130' ry='91'/%3E%3Cellipse cx='150' cy='170' rx='150' ry='105'/%3E%3Cellipse cx='150' cy='170' rx='170' ry='119'/%3E%3C/g%3E%3Cg transform='rotate(25 290 430)'%3E%3Cellipse cx='290' cy='430' rx='20' ry='16'/%3E%3Cellipse cx='290' cy='430' rx='38' ry='30'/%3E%3Cellipse cx='290' cy='430' rx='56' ry='45'/%3E%3Cellipse cx='290' cy='430' rx='74' ry='59'/%3E%3Cellipse cx='290' cy='430' rx='92' ry='74'/%3E%3Cellipse cx='290' cy='430' rx='110' ry='88'/%3E%3Cellipse cx='290' cy='430' rx='128' ry='102'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+ 
+  /* veličina knjige: visina stranice ograničena visinom i širinom ekrana */
+  --ph: min(86vh, 62vw);
+  --pw: calc(var(--ph) * 0.72);
+}
+ 
+/* Poništava Vite predložak (#root s fiksnom širinom i rubovima),
+   zbog kojeg je knjiga bila pomaknuta i imala bijelu liniju. */
+html,
+body,
+#root {
+  height: 100%;
+}
+ 
+#root {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: block;
+  text-align: left;
+}
+ 
+* { box-sizing: border-box; }
+ 
+body {
+  display: block;
+  margin: 0;
+  overflow: hidden;
+  background: #1b0f07;
+  color: var(--ink);
+}
+ 
+button { font-family: inherit; color: inherit; }
+ 
+button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+ 
+/* =========================================================
+   SCENA (drveni stol)
+========================================================= */
+ 
+.stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  perspective: 3200px;
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.06) 2px, rgba(0, 0, 0, 0) 6px),
+    radial-gradient(ellipse at 50% 40%, #5c3e28 0%, #35210f 58%, #1b0f07 100%);
+}
+ 
+.book {
+  position: relative;
+  width: calc(var(--pw) * 2);
+  height: var(--ph);
+  transform-style: preserve-3d;
+  transition: transform 1.15s cubic-bezier(0.6, 0, 0.3, 1);
+}
+ 
+/* Zatvorena knjiga stoji na sredini ekrana, otvorena zauzima cijeli prostor */
+.book[data-state='front'] { transform: translateX(calc(var(--pw) * -0.5)); }
+.book[data-state='back'] { transform: translateX(calc(var(--pw) * 0.5)); }
+ 
+/* =========================================================
+   SJENE, DEBLJINA BLOKA STRANICA I ZAKLADKA
+========================================================= */
+ 
+.shadow {
+  position: absolute;
+  top: 5%;
+  width: var(--pw);
+  height: 96%;
+  background: rgba(8, 3, 0, 0.7);
+  filter: blur(calc(var(--ph) * 0.03));
+  transform: translateZ(-30px);
+  transition: opacity 0.6s;
+}
+ 
+.shadow.left { left: calc(var(--pw) * -0.03); }
+.shadow.right { left: calc(var(--pw) * 1.03); }
+ 
+.book[data-state='front'] .shadow.left,
+.book[data-state='back'] .shadow.right { opacity: 0; }
+ 
+.stack {
+  position: absolute;
+  top: 0;
+  width: var(--pw);
+  height: 100%;
+  background: #e3d4ae;
+  transform: translateZ(-8px);
+  transition: opacity 0.6s;
+  --e: calc(var(--ph) * 0.0032);
+}
+ 
+.stack.right {
+  left: var(--pw);
+  border-radius: 0 calc(var(--ph) * 0.006) calc(var(--ph) * 0.006) 0;
+  box-shadow:
+    var(--e) var(--e) 0 #d6c59b,
+    calc(var(--e) * 2) calc(var(--e) * 2) 0 #e8dab6,
+    calc(var(--e) * 3) calc(var(--e) * 3) 0 #c9b78c,
+    calc(var(--e) * 4) calc(var(--e) * 4) 0 #ddcca3;
+}
+ 
+.stack.left {
+  left: 0;
+  border-radius: calc(var(--ph) * 0.006) 0 0 calc(var(--ph) * 0.006);
+  box-shadow:
+    calc(var(--e) * -1) var(--e) 0 #d6c59b,
+    calc(var(--e) * -2) calc(var(--e) * 2) 0 #e8dab6,
+    calc(var(--e) * -3) calc(var(--e) * 3) 0 #c9b78c,
+    calc(var(--e) * -4) calc(var(--e) * 4) 0 #ddcca3;
+}
+ 
+.book[data-state='back'] .stack.right,
+.book[data-state='front'] .stack.left { opacity: 0; }
+ 
+/* svilena vrpca (zakladka) viri ispod bloka stranica */
+.ribbon {
+  position: absolute;
+  top: 92%;
+  left: calc(var(--pw) * 1.72);
+  width: calc(var(--ph) * 0.026);
+  height: calc(var(--ph) * 0.1);
+  background: linear-gradient(90deg, #6d1a1a, #a52e2e 50%, #6d1a1a);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%);
+  transform: translateZ(-6px);
+  transition: opacity 0.6s;
+}
+ 
+.book[data-state='back'] .ribbon { opacity: 0; }
+ 
+/* =========================================================
+   LISTOVI (okreću se oko hrpta u sredini knjige)
+========================================================= */
+ 
+.leaf {
+  position: absolute;
+  top: 0;
+  left: var(--pw);
+  width: var(--pw);
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transform: translateZ(calc(var(--i) * -0.5px)) rotateY(0deg);
+  transition: transform var(--dur) cubic-bezier(0.5, 0.05, 0.25, 1) var(--d);
+}
+ 
+.leaf.flipped {
+  transform: translateZ(calc(var(--i) * 0.5px)) rotateY(-180deg);
+}
+ 
+.face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* stari papir: zrnatost + tamniji rubovi */
+  background:
+    var(--grain-soft) 0 0 / 22cqh,
+    radial-gradient(ellipse at 50% 45%, #f5ebd2 0%, #ede0c0 68%, #dfcea6 100%);
+  background-color: #eadcb9;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  container-type: size; /* omogućuje cqh jedinice unutar stranice */
+  cursor: pointer;
+}
+ 
+.face.front { border-radius: 0 0.6cqh 0.6cqh 0; }
+.face.back {
+  transform: rotateY(180deg);
+  border-radius: 0.6cqh 0 0 0.6cqh;
+}
+ 
+/* sjena u hrptu knjige */
+.face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+ 
+.face.front::before {
+  background: linear-gradient(90deg, rgba(60, 36, 12, 0.34), rgba(60, 36, 12, 0) 12%);
+}
+ 
+.face.back::before {
+  background: linear-gradient(270deg, rgba(60, 36, 12, 0.34), rgba(60, 36, 12, 0) 12%);
+}
+ 
+/* sjena koja prelazi preko lista dok se okreće */
+.face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: #140a03;
+  opacity: 0;
+}
+ 
+.leaf.turning .face::after {
+  animation: shade var(--dur) ease-in-out var(--d) both;
+}
+ 
+@keyframes shade {
+  0% { opacity: 0; }
+  50% { opacity: 0.32; }
+  100% { opacity: 0; }
+}
+ 
+/* =========================================================
+   KORICE (koža, zlatotisak, metalni kutovi)
+========================================================= */
+ 
+.face.cover {
+  background:
+    var(--grain) 0 0 / 22cqh,
+    radial-gradient(ellipse at 30% 22%, #744729 0%, #55321c 52%, #36200f 100%);
+  background-color: #4a2b18;
+  color: var(--gold);
+}
+ 
+.face.front.cover { border-radius: 0.8cqh 1.6cqh 1.6cqh 0.8cqh; }
+.face.back.cover { border-radius: 1.6cqh 0.8cqh 0.8cqh 1.6cqh; }
+ 
+/* uleknuće hrpta */
+.face.front.cover::before {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.5) 0%,
+    rgba(255, 220, 160, 0.1) 3.4%,
+    rgba(0, 0, 0, 0.32) 5%,
+    rgba(0, 0, 0, 0) 13%
+  );
+}
+ 
+.face.back.cover::before {
+  background: linear-gradient(
+    270deg,
+    rgba(0, 0, 0, 0.5) 0%,
+    rgba(255, 220, 160, 0.1) 3.4%,
+    rgba(0, 0, 0, 0.32) 5%,
+    rgba(0, 0, 0, 0) 13%
+  );
+}
+ 
+.cover-body {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+ 
+/* šav uz rub korica */
+.cover-body::before {
+  content: '';
+  position: absolute;
+  inset: 2.6cqh;
+  border: 0.22cqh dashed rgba(211, 173, 98, 0.45);
+  border-radius: 0.8cqh;
+}
+ 
+/* dvostruki zlatni okvir */
+.cover-frame {
+  position: absolute;
+  inset: 6cqh;
+  border: 0.35cqh solid var(--gold);
+  opacity: 0.85;
+}
+ 
+.cover-frame::after {
+  content: '';
+  position: absolute;
+  inset: 1.1cqh;
+  border: 0.15cqh solid var(--gold);
+  opacity: 0.7;
+}
+ 
+.cover-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 12cqh;
+}
+ 
+/* tisak u zlatu, utisnut u kožu */
+.cover-content > *,
+.cover-content h1 {
+  text-shadow:
+    0 -0.12cqh 0 rgba(0, 0, 0, 0.55),
+    0 0.16cqh 0 rgba(255, 228, 165, 0.22);
+}
+ 
+.emblem {
+  width: 19cqh;
+  margin-bottom: 5cqh;
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  filter: drop-shadow(0 -0.12cqh 0 rgba(0, 0, 0, 0.55));
+}
+ 
+.cover-kicker {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 2.6cqh;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  text-transform: uppercase;
+}
+ 
+.cover-content h1 {
+  margin: 1.2cqh 0 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12.5cqh;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--gold);
+}
+ 
+.cover-ornament {
+  width: 24cqh;
+  height: 0.22cqh;
+  margin: 4.5cqh 0 3.6cqh;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  display: grid;
+  place-items: center;
+}
+ 
+.cover-ornament i {
+  width: 1.4cqh;
+  height: 1.4cqh;
+  background: var(--gold);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 0.9cqh #4a2b18;
+}
+ 
+.cover-year {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 3cqh;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+}
+ 
+/* metalni kutovi */
+.corner {
+  position: absolute;
+  width: 12cqh;
+  height: 12cqh;
+  z-index: 3;
+  background: linear-gradient(135deg, #ecd08c 0%, #a67f3a 55%, #dcb96e 100%);
+}
+ 
+.corner.tr { top: 0; right: 0; clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.corner.br { bottom: 0; right: 0; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.corner.tl { top: 0; left: 0; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.corner.bl { bottom: 0; left: 0; clip-path: polygon(0 0, 100% 100%, 0 100%); }
+ 
+/* =========================================================
+   STRANICE
+========================================================= */
+ 
+.page-body {
+  position: absolute;
+  inset: 0;
+  padding: 8cqh 8cqh 10cqh;
+  display: flex;
+  flex-direction: column;
+}
+ 
+.label {
+  margin: 0 0 4cqh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.4cqh;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 2.1cqh;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+ 
+.marker {
+  display: inline-block;
+  width: 2.2cqh;
+  height: 2.2cqh;
+  border-radius: 50%;
+  background: #fbf3df;
+  border: 0.6cqh solid var(--marker);
+  flex-shrink: 0;
+}
+ 
+.title-xl,
+.title-lg {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+ 
+.title-xl { font-size: 10.5cqh; margin-top: 4cqh; }
+.title-lg { font-size: 8cqh; }
+ 
+/* ukrasna crta s rombom */
+.rule {
+  position: relative;
+  width: 22cqh;
+  height: 0.2cqh;
+  margin: 5.5cqh auto 4cqh;
+  background: linear-gradient(90deg, transparent, var(--gold-deep), transparent);
+}
+ 
+.rule::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.2cqh;
+  height: 1.2cqh;
+  background: var(--gold-deep);
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: 0 0 0 0.8cqh #eadcb9;
+}
+ 
+.quote,
+.lead {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-text);
+  font-style: italic;
+  font-size: 2.9cqh;
+  line-height: 1.6;
+  color: #5b4733;
+}
+ 
+.lead { margin-top: 2.5cqh; }
+ 
+.folio {
+  position: absolute;
+  bottom: 4cqh;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--font-text);
+  font-style: italic;
+  font-size: 2.2cqh;
+  color: var(--muted);
+}
+ 
+/* sadržaj */
+ 
+.toc { margin-top: 5cqh; display: flex; flex-direction: column; }
+ 
+.toc-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: baseline;
+  gap: 1.6cqh;
+  padding: 1.8cqh 0;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+ 
+.toc-row:hover .toc-title { color: var(--marker); }
+ 
+.toc-number {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 2.4cqh;
+  color: var(--gold-deep);
+}
+ 
+.toc-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 4cqh;
+  transition: color 0.15s;
+}
+ 
+.toc-dots { border-bottom: 1px dotted #a89170; transform: translateY(-0.7cqh); }
+ 
+.toc-page {
+  font-family: var(--font-text);
+  font-size: 2.5cqh;
+  color: var(--muted);
+}
+ 
+.new-trip-button {
+  align-self: center;
+  margin-top: 5cqh;
+  padding: 1.5cqh 3cqh;
+  border: 0.2cqh solid var(--ink);
+  border-radius: 0.5cqh;
+  background: transparent;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.2cqh;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+ 
+.new-trip-button:hover { background: var(--ink); color: #f0e3c3; }
+ 
+/* lijeva stranica izleta: fotografija zalijepljena u album */
+ 
+.photo {
+  position: relative;
+  flex: 0 0 48cqh;
+  margin: 0 1cqh 5cqh;
+  border: 1.3cqh solid #f9f1de;
+  box-shadow:
+    0 0.6cqh 1.6cqh rgba(60, 36, 12, 0.4),
+    0 0 0 0.12cqh rgba(90, 60, 30, 0.45);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background:
+    var(--topo) center / cover no-repeat,
+    linear-gradient(150deg, #8d6c47, #5a4129 75%);
+  color: #f3e5c4;
+  font-family: var(--font-text);
+  font-style: italic;
+  font-size: 2.5cqh;
+}
+ 
+.photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: sepia(0.25);
+}
+ 
+.mount {
+  position: absolute;
+  width: 7cqh;
+  height: 7cqh;
+  z-index: 2;
+  background: #2f2217;
+}
+ 
+.mount.tl { top: 0; left: 0; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.mount.br { bottom: 0; right: 0; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+ 
+.trip-title { margin-bottom: 2.4cqh; }
+ 
+.trip-meta {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-text);
+  font-style: italic;
+  font-size: 2.7cqh;
+  line-height: 1.6;
+  color: var(--muted);
+}
+ 
+/* desna stranica izleta */
+ 
+.story-lead { margin-top: 0; font-size: 3.2cqh; color: var(--ink); }
+ 
+.story-heading {
+  margin: 5cqh 0 1.6cqh;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 3.6cqh;
+}
+ 
+.story-text {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 2.5cqh;
+  line-height: 1.7;
+  text-align: justify;
+  hyphens: auto;
+  color: #4d3b2a;
+}
+ 
+.story-text::first-letter {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 6.2cqh;
+  line-height: 0.8;
+  float: left;
+  padding: 0.6cqh 1cqh 0 0;
+  color: var(--gold-deep);
+}
+ 
+.track-box {
+  margin-top: auto;
+  height: 24cqh;
+  border: 0.2cqh solid var(--gold-deep);
+  border-radius: 0.5cqh;
+  padding: 2.4cqh 2.8cqh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background:
+    var(--topo) center / cover no-repeat,
+    linear-gradient(150deg, #5f4630, #3a291a);
+  color: #f1e3c2;
+  box-shadow: inset 0 0 2cqh rgba(0, 0, 0, 0.4);
+}
+ 
+.track-box > span {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.3cqh;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+ 
+.track-stats {
+  display: flex;
+  gap: 3.6cqh;
+  font-family: var(--font-text);
+  font-size: 2.2cqh;
+  color: #cdb98f;
+}
+ 
+.track-stats b {
+  font-family: var(--font-display);
+  font-size: 3.6cqh;
+  font-weight: 700;
+  color: #fff4da;
+}
+ 
+/* =========================================================
+   KONTROLE
+========================================================= */
+ 
+.controls {
+  position: fixed;
+  left: 50%;
+  bottom: 2.2vh;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 8px;
+  border-radius: 99px;
+  background: rgba(30, 17, 8, 0.6);
+  border: 1px solid rgba(211, 173, 98, 0.3);
+  backdrop-filter: blur(10px);
+  color: #ead9b0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  z-index: 10;
+}
+ 
+.controls > span { min-width: 200px; text-align: center; }
+ 
+.controls button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(211, 173, 98, 0.16);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+ 
+.controls button:hover:not(:disabled) { background: rgba(211, 173, 98, 0.3); }
+.controls button:disabled { opacity: 0.3; cursor: default; }
+ 
+.controls .close-book {
+  width: auto;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 99px;
+  font-size: 14px;
+  font-weight: 700;
+}
+ 
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur: 0.01s; }
+  .book { transition-duration: 0.01s; }
+}
+ 
